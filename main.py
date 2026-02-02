@@ -1,3 +1,8 @@
+"""
+Voice Authentication API - Detects AI-Generated vs Human Speech
+Supports: Tamil, English, Hindi, Malayalam, Telugu
+"""
+
 from fastapi import FastAPI, HTTPException, Header, File, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -151,18 +156,18 @@ class FeatureExtractor:
     def extract_spectral_features(audio: np.ndarray, sr: int = SAMPLE_RATE) -> Dict[str, float]:
         features = {}
         
-        spec_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)[0]
+        spec_centroid = librosa.feature.spectral_centroid(y=audio, sr=sr)
         features['spectral_centroid_mean'] = float(np.mean(spec_centroid))
         features['spectral_centroid_std'] = float(np.std(spec_centroid))
         
-        zcr = librosa.feature.zero_crossing_rate(audio)[0]
+        zcr = librosa.feature.zero_crossing_rate(audio)
         features['zcr_mean'] = float(np.mean(zcr))
         features['zcr_std'] = float(np.std(zcr))
         
-        spec_rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)[0]
+        spec_rolloff = librosa.feature.spectral_rolloff(y=audio, sr=sr)
         features['spec_rolloff_mean'] = float(np.mean(spec_rolloff))
         
-        rms = librosa.feature.rms(y=audio)[0]
+        rms = librosa.feature.rms(y=audio)
         features['rms_mean'] = float(np.mean(rms))
         features['rms_std'] = float(np.std(rms))
         
@@ -472,19 +477,6 @@ async def root():
         },
         "authentication": "Provide 'x-api-key' header",
         "supported_languages": VALID_LANGUAGES
-    }
-
-# ============================================================================
-# ERROR HANDLERS
-# ============================================================================
-
-@app.exception_handler(HTTPException)
-async def http_exception_handler(request, exc):
-    """Custom HTTP exception handler"""
-    return {
-        "error": exc.detail,
-        "status_code": exc.status_code,
-        "timestamp": time.time()
     }
 
 # ============================================================================
