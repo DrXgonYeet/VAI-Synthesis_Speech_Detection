@@ -1,0 +1,98 @@
+{
+  "name": "Voice Authentication API",
+  "version": "1.0.0",
+  "description": "Detects AI-generated vs human speech in 5 Indian languages",
+  "authentication": {
+    "type": "API Key",
+    "header": "x-api-key",
+    "default_key": "demo-key-123",
+    "generate_new": "python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+  },
+  "base_url": "http://localhost:8000",
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/health",
+      "description": "Health check and system status",
+      "response": {
+        "status": "healthy",
+        "model_loaded": true,
+        "supported_languages": [
+          "Tamil",
+          "English",
+          "Hindi",
+          "Malayalam",
+          "Telugu"
+        ],
+        "device": "cpu"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/analyze-voice",
+      "description": "Analyze voice sample (Base64 input)",
+      "request": {
+        "audio_base64": "UklGRiR9AABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQB9AAAAAAALrhW1H8soqjAWN9473T79PzU/izwTOPAxUCpu... (truncated)",
+        "language": "English"
+      },
+      "response": {
+        "classification": "HUMAN",
+        "confidence": 0.92,
+        "processing_time_ms": 245.3,
+        "language": "English",
+        "explainability": {
+          "model_name": "SimpleSpeechDetector",
+          "raw_probability": 0.08,
+          "feature_space": "mel_spectrogram_128_bins",
+          "training_dataset": "ASVspoof_2019+Custom"
+        }
+      },
+      "curl_example": "curl -X POST http://localhost:8000/analyze-voice \\\n  -H \"Content-Type: application/json\" \\\n  -H \"x-api-key: demo-key-123\" \\\n  -d '{\n    \\\"audio_base64\\\": \\\"UklGRiR9AABXQVZFZm10IBAAAAABAAEAgD4AAAB9AAACABAAZGF0YQB9AAAAAAALrhW1H8soqjAWN9473T79PzU/izwTOPAxUCpu...\\\",\n    \\\"language\\\": \\\"English\\\"\n  }'",
+      "python_example": "import requests\nimport base64\n\nwith open(\"sample.mp3\", \"rb\") as f:\n    audio_base64 = base64.b64encode(f.read()).decode()\n\nresponse = requests.post(\n    \"http://localhost:8000/analyze-voice\",\n    json={\n        \"audio_base64\": audio_base64,\n        \"language\": \"Tamil\"\n    },\n    headers={\"x-api-key\": \"demo-key-123\"}\n)\nprint(response.json())"
+    },
+    {
+      "method": "POST",
+      "path": "/analyze-voice-file",
+      "description": "Analyze voice sample (File upload)",
+      "curl_example": "curl -X POST http://localhost:8000/analyze-voice-file \\\n  -H \"x-api-key: demo-key-123\" \\\n  -F \"file=@sample.mp3\" \\\n  -F \"language=Hindi\"",
+      "response": "Same as /analyze-voice"
+    },
+    {
+      "method": "GET",
+      "path": "/docs",
+      "description": "Interactive Swagger UI documentation"
+    },
+    {
+      "method": "GET",
+      "path": "/redoc",
+      "description": "Alternative API documentation"
+    }
+  ],
+  "supported_languages": [
+    "Tamil",
+    "English",
+    "Hindi",
+    "Malayalam",
+    "Telugu"
+  ],
+  "response_formats": {
+    "classification": "AI_GENERATED or HUMAN",
+    "confidence": "0.0 to 1.0",
+    "processing_time_ms": "milliseconds",
+    "explainability": "model details"
+  },
+  "authentication_required": [
+    "analyze-voice",
+    "analyze-voice-file"
+  ],
+  "rate_limits": "10 requests/minute (configurable)",
+  "max_audio_size": "10MB",
+  "expected_latency": "200-300ms per request",
+  "deployment_options": [
+    "Docker",
+    "Railway",
+    "AWS",
+    "GCP"
+  ],
+  "openapi_spec": "http://localhost:8000/openapi.json"
+}
