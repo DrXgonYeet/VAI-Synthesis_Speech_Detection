@@ -205,3 +205,22 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# ==========================
+# CUSTOM PROJECT EXCLUSIONS
+# ==========================
+
+# 1. Ignore the large dataset folder
+data/
+
+# 2. Ignore the trained model weights (too large for GitHub)
+*.pth
+
+# 3. Ignore large audio files in the root directory
+*.wav
+*.mp3
+*.flac
+
+# 4. Ignore user-specific test audio (optional but recommended)
+sample.mp3
+b64.txt
