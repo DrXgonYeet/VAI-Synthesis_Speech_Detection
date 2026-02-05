@@ -4,95 +4,137 @@ from pathlib import Path
 from tqdm import tqdm
 import librosa
 import soundfile as sf
+import random
 
 # CONFIGURATION
 DATA_ROOT = Path("data")
 ASV_PATH = DATA_ROOT / "ASVspoof2019_LA"
 CV_PATH = DATA_ROOT / "common_voice"
+AI_PATH = DATA_ROOT / "generated_ai"
 TARGET_SR = 16000
+
+# HOW MANY HUMAN FILES TO KEEP PER LANGUAGE?
+# We match this roughly to your AI files (200) to keep training balanced.
+HUMAN_LIMIT_PER_LANG = 200 
 
 def process_asvspoof():
     print("Processing ASVspoof 2019 LA...")
     protocol_path = ASV_PATH / "ASVspoof2019_LA_protocols/ASVspoof2019.LA.cm.train.trn.txt"
     audio_dir = ASV_PATH / "ASVspoof2019_LA_train/flac"
     
+    if not protocol_path.exists():
+        print(f"Skipping ASVspoof: Protocol file not found.")
+        return []
+
     data = []
-    # Read ASVspoof protocol file
-    # Format: SPEAKER_ID AUDIO_FILE_NAME - SYSTEM_ID KEY
-    # KEY: 'bonafide' (Human) or 'spoof' (AI)
     with open(protocol_path, 'r') as f:
         lines = f.readlines()
         
+    # Take a random sample of ASVspoof so it doesn't overwhelm the Indian data
+    # (Taking 1000 lines randomly)
+    random.shuffle(lines)
+    lines = lines[:1000]
+
     for line in tqdm(lines):
         parts = line.strip().split()
         filename = parts[1]
-        label_str = parts[-1] # 'bonafide' or 'spoof'
-        
-        # 0 = Human, 1 = AI
+        label_str = parts[-1]
         label = 0 if label_str == 'bonafide' else 1
         
         file_path = audio_dir / f"{filename}.flac"
         if file_path.exists():
-            data.append({
-                "path": str(file_path),
-                "label": label,
-                "source": "asvspoof"
-            })
+            data.append({"path": str(file_path), "label": label, "source": "asvspoof"})
     return data
 
-def process_common_voice(lang_code):
+def process_common_voice_robust(lang_code):
     print(f"Processing Common Voice ({lang_code})...")
     lang_dir = CV_PATH / lang_code
-    # Assuming standard CV structure: clips/ folder and train.tsv
-    clips_dir = lang_dir / "clips"
-    tsv_path = lang_dir / "train.tsv"
     
-    if not tsv_path.exists():
-        print(f"Skipping {lang_code}: train.tsv not found")
+    if not lang_dir.exists():
+        print(f"❌ Skipping {lang_code}: Folder not found")
         return []
 
-    df = pd.read_csv(tsv_path, sep='\t')
+    # Find ALL audio files recursively (mp3 or wav)
+    audio_files = list(lang_dir.rglob("*.mp3")) + list(lang_dir.rglob("*.wav"))
+    
+    if not audio_files:
+        print(f"❌ No audio files found in {lang_dir}")
+        return []
+
+    print(f"   Found {len(audio_files)} files. Selecting {HUMAN_LIMIT_PER_LANG}...")
+    
+    # Shuffle and limit
+    random.shuffle(audio_files)
+    selected_files = audio_files[:HUMAN_LIMIT_PER_LANG]
+    
     data = []
-    
-    # Process only first 2000 files per language to prevent imbalance
-    # (Since we don't have Indian AI voices, too much Real data will bias the model)
-    limit = 2000 
-    
-    for _, row in tqdm(df.head(limit).iterrows(), total=min(len(df), limit)):
-        mp3_name = row['path']
-        src_path = clips_dir / mp3_name
+    for file_path in tqdm(selected_files):
+        # Convert to WAV 16kHz if needed
+        output_path = file_path.with_suffix(".wav")
         
-        # We must convert MP3 to WAV 16kHz for consistency
-        wav_name = mp3_name.replace(".mp3", ".wav")
-        dest_path = clips_dir / wav_name
-        
-        if not dest_path.exists() and src_path.exists():
+        # If it's an MP3 or needs converting, do it
+        if file_path.suffix.lower() == ".mp3" and not output_path.exists():
             try:
-                # Convert using librosa (slow but works) or ffmpeg
-                y, sr = librosa.load(src_path, sr=TARGET_SR)
-                sf.write(dest_path, y, TARGET_SR)
-            except Exception as e:
+                y, sr = librosa.load(file_path, sr=TARGET_SR)
+                sf.write(output_path, y, TARGET_SR)
+                final_path = output_path
+            except Exception:
                 continue
-        
-        if dest_path.exists():
-            data.append({
-                "path": str(dest_path),
-                "label": 0, # Common Voice is always Human (0)
-                "source": f"cv_{lang_code}"
-            })
+        else:
+            final_path = file_path
+
+        data.append({
+            "path": str(final_path),
+            "label": 0,  # HUMAN
+            "source": f"cv_{lang_code}"
+        })
             
     return data
 
-# RUN
-all_data = []
-all_data.extend(process_asvspoof())
+def process_generated_ai(lang_code):
+    print(f"Processing Generated AI ({lang_code})...")
+    lang_dir = AI_PATH / lang_code
+    
+    if not lang_dir.exists():
+        return []
+    
+    data = []
+    files = list(lang_dir.glob("*.mp3")) + list(lang_dir.glob("*.wav"))
+    
+    for file_path in tqdm(files):
+        wav_path = file_path.with_suffix('.wav')
+        if not wav_path.exists():
+            try:
+                y, sr = librosa.load(file_path, sr=TARGET_SR)
+                sf.write(wav_path, y, TARGET_SR)
+            except Exception:
+                continue
+                
+        data.append({
+            "path": str(wav_path),
+            "label": 1,  # FAKE
+            "source": f"gtts_{lang_code}"
+        })
+    
+    return data
 
-# Add your languages
-for lang in ["hi", "ta", "ml", "te"]:
-    all_data.extend(process_common_voice(lang))
+if __name__ == "__main__":
+    all_data = []
+    
+    # 1. Base English Data
+    all_data.extend(process_asvspoof())
+    
+    # 2. Indian Languages
+    langs = ["hi", "ta", "ml", "te"]
+    for lang in langs:
+        all_data.extend(process_common_voice_robust(lang)) # Label 0
+        all_data.extend(process_generated_ai(lang))        # Label 1
 
-# Save unified dataset
-df = pd.DataFrame(all_data)
-df.to_csv("train_manifest.csv", index=False)
-print(f"Saved manifest with {len(df)} files to train_manifest.csv")
-print(df['label'].value_counts())
+    # 3. Save
+    df = pd.DataFrame(all_data)
+    if len(df) > 0:
+        df.to_csv("train_manifest.csv", index=False)
+        print(f"\n✅ SUCCESS! Saved {len(df)} files.")
+        print(df['label'].value_counts())
+    else:
+        print("\n❌ Error: No data found.")

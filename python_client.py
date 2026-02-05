@@ -160,7 +160,7 @@ if __name__ == "__main__":
 
     print("\n--- ANALYZE AUDIO ---")
     try:
-        result = api.analyze_audio("sample.mp3", "Tamil")
+        result = api.analyze_audio("ai_hi_0.mp3", "Tamil")
         print(f"Classification: {result['classification']}")
         print(f"Confidence: {result['confidence']:.2%}")
         print(f"Processing Time: {result['processing_time_ms']} ms")
@@ -168,5 +168,5 @@ if __name__ == "__main__":
         print("Analysis failed:", e)
 
     print("\n--- SIMPLE HUMAN CHECK ---")
-    is_human = api.is_human_voice("sample.mp3", policy="normal")
+    is_human = api.is_human_voice("ai_hi_0.mp3", policy="normal")
     print(f"Is human voice? {is_human}")
