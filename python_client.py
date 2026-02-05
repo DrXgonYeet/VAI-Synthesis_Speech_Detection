@@ -24,8 +24,10 @@ class VoiceAuthAPI:
 
     def __init__(
         self,
-        base_url: str = "http://localhost:8000",
-        api_key: str = "demo-key-123",
+        # Update this to your live Render URL
+        base_url: str = "https://vai-synthesis-speech-detection.onrender.com",
+        # Update this to the key you set in Render
+        api_key: str = "0713hex_luthor", 
         timeout: int = 10
     ):
         self.base_url = base_url.rstrip("/")

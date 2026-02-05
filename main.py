@@ -31,7 +31,9 @@ TARGET_LENGTH = SAMPLE_RATE * AUDIO_DURATION
 
 # Updated languages list
 VALID_LANGUAGES = ["Tamil", "English", "Hindi", "Malayalam", "Telugu"]
-VALID_API_KEYS = set([os.getenv("API_KEY", "demo-key-123")])
+# Use a dummy default so your real key isn't in the code.
+# The REAL key will come from Render's Environment Variables.
+VALID_API_KEYS = set([os.getenv("API_KEY", "demo-key-123")])  # Load from environment variable
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -219,6 +221,13 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_credentials=True, 
 model_manager = ModelManager()
 audio_processor = AudioProcessor()
 feature_extractor = FeatureExtractor()
+@app.get("/")
+async def root():
+    return {
+        "message": "VoiceGuard API is Online",
+        "docs_url": "/docs",
+        "health_url": "/health"
+    }
 
 @app.on_event("startup")
 async def startup_event():
@@ -272,4 +281,6 @@ async def analyze_voice(request: VoiceAnalysisRequest, x_api_key: Optional[str] 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Get port from environment variable, default to 8000 for local testing
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)

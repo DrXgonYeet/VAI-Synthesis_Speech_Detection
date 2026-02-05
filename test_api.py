@@ -11,8 +11,8 @@ import numpy as np
 from scipy.io import wavfile
 import tempfile
 
-API_URL = "http://localhost:8000"
-API_KEY = "demo-key-123"
+API_URL = "https://vai-synthesis-speech-detection.onrender.com"
+API_KEY = "0713hex_luthor"
 
 HEADERS = {
     "Content-Type": "application/json",
