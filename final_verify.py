@@ -3,7 +3,7 @@ import base64
 
 # Your LIVE URL
 API_URL = "https://vai-synthesis-speech-detection.onrender.com/analyze-voice"
-API_KEY = "API_KEY"  # The key you set in Render
+API_KEY = "0713hex_luthor"  # The key you set in Render
 
 # Path to a test file (ensure this file exists!)
 TEST_FILE = "test_human.wav" # OR "popli.mp3"
