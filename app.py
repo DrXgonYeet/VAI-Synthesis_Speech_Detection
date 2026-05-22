@@ -3,6 +3,7 @@ import base64
 import numpy as np
 import librosa
 from main import AudioProcessor, FeatureExtractor, model_manager
+import matplotlib.pyplot as plt
 
 # Initialize Model (Must load once)
 if not model_manager.is_loaded:
@@ -24,13 +25,14 @@ if uploaded_file is not None:
     audio = AudioProcessor.preprocess_audio(audio)
     
     st.audio(audio_bytes)
-    
     if st.button("Run Detection"):
         with st.spinner("Analyzing audio..."):
             try:
                 # 2. Extract Features using your existing code
                 mel_spec = FeatureExtractor.extract_mel_spectrogram(audio)
-                
+                fig, ax = plt.subplots()
+                img = librosa.display.specshow(mel_spec, ax=ax)
+                st.pyplot(fig)
                 # 3. Predict using your existing model_manager
                 prob_ai, confidence = model_manager.predict(mel_spec)
                 
